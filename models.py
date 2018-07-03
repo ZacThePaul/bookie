@@ -1,5 +1,6 @@
 import sqlite3
 from easygui import *
+import functions as f
 
 db_file = 'bookie.sqlite'
 conn = sqlite3.connect(db_file)
@@ -9,13 +10,15 @@ c = conn.cursor()
 class Client:
 
     def __init__(self):
-        pass
+        self.create_table()
+
+    def create_table(self):
+        c.execute('create table if not exists client(name TEXT, address VARCHAR, city VARCHAR, number INTEGER, balance REAL)')
+
 
     def create_client_account(self, name, address, city, number, balance):
         # this function creates the table 'client' and adds in its respective fields.
         # in addition, it adds in the input the user provided to the database.
-        c.execute(
-            'create table if not exists client(name TEXT, address VARCHAR, city VARCHAR, number INTEGER, balance REAL)')
         c.execute('insert into client values(?, ?, ?, ?, ?)', (name, address, city, number, balance), )
         conn.commit()
 
@@ -62,20 +65,22 @@ class Client:
         yn = ynbox('Are you adding or subtracting from the balance?', 'autoBookie', ['Adding', 'Subtracting'])
 
         if yn:
+
             add = float(enterbox('How much will you add to client balance?', 'autoBookie'))
             new_balance = balance + add
             c.execute('''update client set balance =? where ROWID = ?''', (new_balance, identification,))
             conn.commit()
-            clean_balance = str(self.retrieve_balance(identification))
-            textbox('Client balance is now ' + clean_balance)
+            clean_balance = self.retrieve_balance(identification)
+            textbox('Client balance is now:  ${:,.2f}'.format(clean_balance))
 
         elif not yn:
+
             sub = float(enterbox('How much will you subtract from client balance?', 'autoBookie'))
             new_balance = balance - sub
             c.execute('''update client set balance =? where ROWID = ?''', (new_balance, identification,))
             conn.commit()
-            clean_balance = str(self.retrieve_balance(identification))
-            textbox('Client balance is now ' + clean_balance)
+            clean_balance = self.retrieve_balance(identification)
+            textbox('Client balance is now:  ${:,.2f}'.format(clean_balance))
 
     def retrieve_balance(self, user_id):
 
@@ -84,8 +89,82 @@ class Client:
         balance = c.fetchone()
         return balance[0]
 
+    def delete_client_account(self, user_id):
+        # this function is simply removing the client from the table.
+        c.execute('''DELETE FROM client WHERE ROWID = ? ''', (user_id,))
+
+        conn.commit()
+
+    def client_menu(self):
+
+        app = App()
+        button_choices = ['Create new client account', 'Display a client account', 'Display all client accounts',
+                          'Update client balance', 'Exit']
+        x = ''
+
+        x = buttonbox('Please choose your option', 'autoBookie', choices=button_choices)
+
+        if x == 'Create new client account':
+
+            msg = "Enter client information"
+            title = "New client form"
+            fieldNames = ["Name", "Street Address", "City", "Phone Number", "Balance"]
+            fieldValues = []  # we start with blanks for the values
+            fieldValues = multenterbox(msg, title, fieldNames)
+
+            if fieldValues:
+                self.create_client_account(fieldValues[0], fieldValues[1], fieldValues[2], fieldValues[3],
+                                             fieldValues[4])
+            else:
+                app.menu()
+
+        elif x == 'Update client balance':
+
+            self.update_client_balance()
+
+        elif x == 'Display a client account':
+
+            x = enterbox('Please enter the client\'s ID number')
+            y = self.display_client_info(x)
+            textbox('Name: ' + y[0] + '\n' + 'Address: ' + y[1] + '\n' + 'City: ' + y[2] + '\n' + 'Phone Number: ' + y[
+                3] + '\n' + 'Balance:  ${:,.2f}'.format(float(y[4])))
+            app.menu()
+
+        elif x == 'Display all client accounts':
+
+            self.display_all_clients()
+            app.menu()
+
+        elif x == 'Exit':
+
+            return False
+
+        else:
+
+            print(x)
 
 
 class App:
-    pass
+
+    def home(self):
+        msgbox('Welcome to autoBookie. The world\'s leading software for bookies\n', title='Welcome', ok_button='Advance')
+
+    def menu(self):
+        # this function displays the menu given to the user and handles all choices made.
+        # think of this as the program hub.
+
+        client = Client()
+
+        button_choices = ['Project', 'Client', 'Employee']
+
+        a = buttonbox('Which category will you be working in today?', 'autoBookie', choices=button_choices)
+
+        if a == 'Client':
+            client.client_menu()
+
+    def clear_table(self):
+        # this function is used to delete the 'client' table from the database
+        c.execute('drop table client')
+
+
 
