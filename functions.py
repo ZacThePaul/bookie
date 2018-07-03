@@ -1,9 +1,17 @@
 import sqlite3
-import Dialogue as d
+from easygui import *
+import models
+
 
 db_file = 'bookie.sqlite'
 conn = sqlite3.connect(db_file)
 c = conn.cursor()
+
+
+def home():
+
+    msgbox('Welcome to autoBookie. The world\'s leading software for bookies\n', title='Welcome', ok_button='Advance')
+
 
 
 def clear_table():
@@ -11,98 +19,57 @@ def clear_table():
     c.execute('drop table client')
 
 
-def create_client_account(name, address, city, number, balance):
-    # this function creates the table 'client' and adds in its respective fields.
-    # in addition, it adds in the input the user provided to the database.
-    c.execute('create table if not exists client(name TEXT, address VARCHAR, city VARCHAR, number INTEGER, balance REAL)')
-    c.execute('insert into client values(?, ?, ?, ?, ?)', (name, address, city, number, balance),)
-    conn.commit()
-
-
-def menu(option):
+def menu():
     # this function displays the menu given to the user and handles all choices made.
     # think of this as the program hub.
-    if option == 'n':
-        # if the user wants to create a new client file, the program takes in this information and
-        # runs the client create function using it. Then ir returns the user to the menu.
-        print('Okay, I just need some information from you.')
-        name = input('What is the client\'s name?')
-        address = input('What is the client\'s address?')
-        city = input('What is the client\'s city?')
-        number = input('What is the client\'s 10 digit phone number? No special characters please.')
-        balance = input('Does the client have an initial balance? If not, enter 0.')
+    client = models.Client()
 
-        create_client_account(name, address, city, number, balance)
-        option = d.welcome()
-        menu(option)
+    button_choices = {'first': ['Project', 'Client', 'Employee'],
+                      'second': ['Create new client account', 'Display a client account',
+                                 'Display all client accounts', 'Update client balance', 'Exit']}
 
-    elif option == 'l':
+    a = buttonbox('Which category will you be working in today?', 'autoBookie', choices=button_choices['first'])
+
+    x = ''
+
+    if a == 'Client':
+        x = buttonbox('Please choose your option', 'autoBookie', choices=button_choices['second'])
+
+    if x == 'Create new client account':
+
+        msg = "Enter client information"
+        title = "New client form"
+        fieldNames = ["Name", "Street Address", "City", "Phone Number", "Balance"]
+        fieldValues = []  # we start with blanks for the values
+        fieldValues = multenterbox(msg, title, fieldNames)
+
+        if fieldValues:
+            client.create_client_account(fieldValues[0], fieldValues[1], fieldValues[2], fieldValues[3], fieldValues[4])
+        else:
+            menu()
+
+    elif x == 'Update client balance':
+
+        client.update_client_balance()
+        menu()
+
+    elif x == 'Display a client account':
         # this option allows the user to select specific clients based on their id numbers.
         # the following function allows the user to update or delete said account.
-        print('Okay, what is the client\'s ID number?')
-        x = input()
-        display_client_info(x)
-        option = d.welcome()
-        menu(option)
+        x = enterbox('Please enter the client\'s ID number')
+        y = client.display_client_info(x)
+        textbox('Name: ' + y[0] + '\n' + 'Address: ' + y[1] + '\n' + 'City: ' + y[2] + '\n' + 'Phone Number: ' + y[3] + '\n' + 'Balance: ' + y[4])
+        menu()
 
-    elif option == 'a':
-        # this option allows the user to see every client in the table.
-        display_all_clients()
+    elif x == 'Display all client accounts':
+        client.display_all_clients()
+        menu()
 
-    elif option == 'b':
-        # this option only displays the name and balance of a client.
-        print('Okay, what is the client\'s ID number?')
-        x = input()
-        display_client_balance(x)
-
-    elif option == 'x':
+    elif x == 'Exit':
         # this option ends the program, it is essentially an X button.
-        print('Thank you for choosing our services. Goodbye.')
-
-
-def display_client_info(user_id):
-    # this function takes the user id of a client and displays all of their information.
-    # then it allows the user to update the balance or delete the account.
-    c.execute('''SELECT ROWID, name, address, city, number, balance FROM client WHERE ROWID=?''', (user_id,))
-    user = c.fetchone()
-    print(
-
-        '\nClient Name: ' + str(user[1]),
-        '\nClient Address: ' + str(user[2]),
-        '\nClient City: ' + str(user[3]),
-        '\nClient Phone Number: ' + str(user[4]),
-        '\nClient balance: ' + str(user[5]),
-        '\n'
-
-    )
-    print('What would you like to do to this account?')
-    print('Update balance = u. Delete client account = d')
-    option = input()
-    if option == 'd':
-        # here the user calls the function that deletes accounts.
-        delete_client_account(user_id)
-        print('Account was successfully deleted!')
-    elif option == 'u':
-        # here the user calls the function that updates the balance.
-        update_client_balance(user_id)
-
-
-def display_all_clients():
-    # this function allows the user to see every client in the table.
-    c.execute('''select ROWID, name, address, city, number, balance from client''')
-    # the for loop below loops through the list that is stored in the C object and the print function
-    # prints each individual client out.
-    for row in c:
-        print(
-            '\n',
-            'Client ID: {} \n'.format(str(row[0])),
-            'Client Name: {} \n'.format(str(row[1])),
-            'Client Address: {} \n'.format(str(row[2])),
-            'Client City: {} \n'.format(str(row[3])),
-            'Client Phone Number: {} \n'.format(str(row[4])),
-            'Client Balance: {} \n'.format(str(row[5])),
-            '\n'
-        )
+        return False
+    else:
+        print(x)
 
 
 def delete_client_account(user_id):
@@ -152,11 +119,7 @@ def update_client_balance(user_id):
                 print('Disaster averted')
 
 
-def retrieve_balance(user_id):
-    # this function does the actual balance retrieval. I got tired of repeatedly typing this so I made a shortcut
-    c.execute('''select balance from client where ROWID=?''', (user_id,))
-    balance = c.fetchone()
-    return balance[0]
+
 
 
 def retrieve_name(user_id):
@@ -164,23 +127,6 @@ def retrieve_name(user_id):
     c.execute('''select name from client where ROWID=?''', (user_id,))
     name = c.fetchone()
     return name[0]
-
-
-def display_client_balance(user_id):
-    # this function does the actual displaying of balances. This function would be called from other functions
-    # to do the actual work.
-    balance = retrieve_balance(user_id)
-    name = retrieve_name(user_id)
-
-    print(name, '\'s balance is ', balance)
-    print('\n')
-    option = d.menu_display()
-    menu(option)
-
-
-
-
-
 
 
 
