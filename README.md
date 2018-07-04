@@ -1,5 +1,7 @@
 <h1> Bookie </h1>
 
+![Alt Text](https://giphy.com/gifs/broadcity-broad-city-ilana-glazer-hail-to-the-kween-3osxYrgM8gi9CDjcPu)
+
 <p>This project is a bookkeeping system designed for small businesses to keep track of expenses, client accounts, and revenue. At the moment, it only runs in console, but I have plans to move it to a GUI.</p>
 <hr>
 <p>This program is useful as a learning tool for myself and my students, on the basic uses of databases and the Python language in general.</p>
